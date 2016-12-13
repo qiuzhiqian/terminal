@@ -10,26 +10,29 @@ Terminal::Terminal(QWidget *parent) :
 
     treeWidget=NULL;
     tv=NULL;
+    xmlfile=NULL;
 
     int threeLength=75;
 
     menu_file=new QMenu();
     act_creat=new QAction(tr("新建"));
     act_open=new QAction(tr("打开"));
+    act_save=new QAction(tr("保存"));
     act_close=new QAction(tr("关闭"));
     act_exit=new QAction(tr("退出"));
 
     menu_file->addAction(act_creat);
     menu_file->addAction(act_open);
+    menu_file->addAction(act_save);
     menu_file->addAction(act_close);
     menu_file->addAction(act_exit);
-    //menu_file->addAction(act_creat);
 
     ui->btn_file->setMenu(menu_file);
 
     connect(act_creat,SIGNAL(triggered(bool)),this,SLOT(slt_xml_new()));
     connect(act_open,SIGNAL(triggered(bool)),this,SLOT(slt_xml_open()));
-    connect(act_close,SIGNAL(triggered(bool)),this,SLOT(slt_xml_save()));
+    connect(act_save,SIGNAL(triggered(bool)),this,SLOT(slt_xml_save()));
+    connect(act_close,SIGNAL(triggered(bool)),this,SLOT(slt_xml_close()));
     connect(act_exit,SIGNAL(triggered(bool)),this,SLOT(slt_xml_exit()));
 
 
@@ -117,6 +120,9 @@ Terminal::Terminal(QWidget *parent) :
     spt_sendTree->addWidget(let_Rec);
 
     ui->hl_down->addWidget(spt_sendTree);
+
+    connect(act_addgroup,SIGNAL(triggered(bool)),this,SLOT(slt_xml_addGroup()));
+    connect(act_addnode,SIGNAL(triggered(bool)),this,SLOT(slt_xml_addNode()));
 }
 
 Terminal::~Terminal()
@@ -131,15 +137,15 @@ bool Terminal::xml_read(QIODevice *device)
     int errorColumn;
     int groupcnt=0;
 
-    domDocument=new QDomDocument();
+    QDomDocument domdoc;
 
-    if (!domDocument->setContent(device, true, &errorStr, &errorLine,
+    if (!domdoc.setContent(device, true, &errorStr, &errorLine,
                                 &errorColumn)) {
         qDebug("Parse error at line %d, column %d:\n%s",errorLine,errorColumn,errorStr);
         return false;
     }
 
-    QDomElement root = domDocument->documentElement();
+    QDomElement root = domdoc.documentElement();
     if (root.tagName() != "BSSignalRegistry") {
         qDebug("The file is not an BSP file.");
         return false;
@@ -151,12 +157,12 @@ bool Terminal::xml_read(QIODevice *device)
 
     //clear();
 
-    QDomElement child = root.firstChildElement("Name");
+    QDomElement child = root.firstChildElement("Type"); //自定义类型--保留
     qDebug() << "Root name " << child.text();
     child = child.nextSiblingElement("Group");;
     while (!child.isNull()) {
         qDebug()<<child.attributeNode("Name").value();
-        QTreeWidgetItem *gp=tv->AddTreeRoot(groupcnt++,child.attributeNode("Name").value());
+        QTreeWidgetItem *gp=tv->AddTreeRoot(child.attributeNode("Name").value());
 
         QDomNodeList list = child.childNodes();
         for(int i = 0;i < list.count();i++)
@@ -169,12 +175,12 @@ bool Terminal::xml_read(QIODevice *device)
                 QDomElement typeele=nodechild.firstChildElement("DataFormat");
                 QDomElement dataele=nodechild.firstChildElement("Data");
 
-                if(typeele.text()==tr("Hex"))   cmb_index=0;
-                else if(typeele.text()==tr("String"))   cmb_index=1;
-                else if(typeele.text()==tr("File"))   cmb_index=2;
+                if(typeele.text()=="Hex")   cmb_index=0;
+                else if(typeele.text()=="String")   cmb_index=1;
+                else if(typeele.text()=="File")   cmb_index=2;
                 else    cmb_index=0;
 
-                tv->AddTreeNode(gp,i,nameele.text(),cmb_index,dataele.text());
+                tv->AddTreeNode(gp,nameele.text(),cmb_index,dataele.text());
                 qDebug() << "    " << qPrintable(nodechild.toElement().tagName()) << qPrintable(nodechild.toElement().text());
             }
         }
@@ -183,6 +189,71 @@ bool Terminal::xml_read(QIODevice *device)
     }
 
     return true;
+}
+
+void Terminal::xml_write(QIODevice *device)
+{
+    QDomDocument domdoc;
+
+    QString strHeader( "version=\"1.0\"" );
+    domdoc.appendChild( domdoc.createProcessingInstruction("xml", strHeader) );
+
+    QDomElement	root_elem = domdoc.createElement( "BSSignalRegistry" );
+    root_elem.setAttribute( "version", "1.0" );
+    domdoc.appendChild( root_elem );
+
+    QDomElement itemName = domdoc.createElement( "Type" );
+    root_elem.appendChild( itemName );
+
+    QDomText itemText= domdoc.createTextNode("BSPFile");
+    itemName.appendChild(itemText);
+
+    int groupcnt=treeWidget->topLevelItemCount();
+    for(int i=0;i<groupcnt;i++)                         //遍历组
+    {
+        QTreeWidgetItem *groupitem=treeWidget->topLevelItem(i);
+        QLineEdit *groupedit=(QLineEdit *)(treeWidget->itemWidget(groupitem,0));       //获取组元素
+
+        //添加dom组
+        QDomElement itemGroup = domdoc.createElement( "Group" );
+        itemGroup.setAttribute( "Name", groupedit->text());
+        root_elem.appendChild( itemGroup );
+
+        int nodecnt=groupitem->childCount();
+        for(int j=0;j<nodecnt;j++)                      //遍历节点
+        {
+            QTreeWidgetItem *nodeitem=groupitem->child(j);
+
+            SendButton *sbtn=(SendButton *)(treeWidget->itemWidget(nodeitem,0));        //获取节点元素
+            QLineEdit *nameedit=(QLineEdit *)(treeWidget->itemWidget(nodeitem,1));
+            QComboBox *typebox=(QComboBox *)(treeWidget->itemWidget(nodeitem,2));
+            QLineEdit *textedit=(QLineEdit *)(treeWidget->itemWidget(nodeitem,3));
+
+            //添加dom节点
+            QDomElement itemNode = domdoc.createElement( "BSSignal" );        //向groupDom中添加Node
+            itemGroup.appendChild( itemNode );
+
+            //向itemNode中添加元素
+            QDomElement itemGBName = domdoc.createElement( "Name" );
+            itemText= domdoc.createTextNode(nameedit->text());
+            itemGBName.appendChild(itemText);
+            itemNode.appendChild( itemGBName );
+
+            QDomElement itemGBType = domdoc.createElement( "DataFormat" );
+            itemText= domdoc.createTextNode(typebox->currentText());
+            itemGBType.appendChild(itemText);
+            itemNode.appendChild( itemGBType );
+
+            QDomElement itemGBData = domdoc.createElement( "Data" );
+            itemText= domdoc.createTextNode(textedit->text());
+            itemGBData.appendChild(itemText);
+            itemNode.appendChild( itemGBData );
+        }
+    }
+
+    //遍历完成，导出dom
+    QTextStream out( device );
+    domdoc.save( out, 4 );
 }
 
 void Terminal::slt_xml_new()
@@ -204,10 +275,7 @@ void Terminal::slt_xml_new()
 
 void Terminal::slt_xml_open()
 {
-    QString fileName =
-            QFileDialog::getOpenFileName(this, tr("Open BSP File"),
-                                         QDir::currentPath(),
-                                         tr("XML Files (*.xbel *.xml)"));
+    QString fileName = QFileDialog::getOpenFileName(this, tr("Open BSP File"),QDir::currentPath(),tr("XML Files (*.xml *.xbel)"));
     if (fileName.isEmpty())
         return;
 
@@ -217,14 +285,12 @@ void Terminal::slt_xml_open()
         return;
     }
 
-
     if(treeWidget!=NULL)
     {
         delete treeWidget;
     }
     treeWidget=new QTreeWidget();
     spt_sendTree->addWidget(treeWidget);
-
 
     if(tv!=NULL)
     {
@@ -233,70 +299,58 @@ void Terminal::slt_xml_open()
     tv=new TreeView(this,treeWidget);
 
     xml_read(xmlfile);
+    xmlfile->close();
 }
 
 void Terminal::slt_xml_save()
 {
     if(xmlfile==NULL)
     {
-        QString filename = QFileDialog::getSaveFileName( this, "Save", "", "*.xml" );
-        xmlfile=new QFile( filename );
-
-        if( !xmlfile->open(QIODevice::WriteOnly | QIODevice::Text) )
-        {
+        QString filename = QFileDialog::getSaveFileName( this, tr("Save BSP File"), "", tr("XML Files (*.xml *.xbel)"));
+        if (filename.isEmpty())
             return;
-        }
+
+        xmlfile=new QFile( filename );
     }
 
-    QDomDocument document;
-
-    QString strHeader( "version=\"1.0\"" );
-    document.appendChild( document.createProcessingInstruction("xml", strHeader) );
-
-    QDomElement	root_elem = document.createElement( "BSSignalRegistry" );
-    root_elem.setAttribute( "version", "1.0" );
-    document.appendChild( root_elem );
-
-    QDomElement itemName = document.createElement( "Name" );
-    root_elem.appendChild( itemName );
-
-    QDomText itemText= document.createTextNode("BSPFile");
-    itemName.appendChild(itemText);
-
-    for(int i=0;i<2;i++)
+    if( !xmlfile->open(QIODevice::WriteOnly | QIODevice::Text) )
     {
-        QDomElement itemGroup1 = document.createElement( "Group" );
-        itemGroup1.setAttribute( "Name", "AT" );
-        root_elem.appendChild( itemGroup1 );
-
-        for(int j=0;j<3;j++)
-        {
-            QDomElement itemG1BSS1 = document.createElement( "BSSignal" );
-            itemGroup1.appendChild( itemG1BSS1 );
-
-            QDomElement itemGBName = document.createElement( "Name" );
-            itemText= document.createTextNode("AT Test");
-            itemGBName.appendChild(itemText);
-            itemG1BSS1.appendChild( itemGBName );
-
-            QDomElement itemGBType = document.createElement( "DataFormate" );
-            itemText= document.createTextNode("String");
-            itemGBType.appendChild(itemText);
-            itemG1BSS1.appendChild( itemGBType );
-
-            QDomElement itemGBData = document.createElement( "Data" );
-            itemText= document.createTextNode("ATI\\r\\n");
-            itemGBData.appendChild(itemText);
-            itemG1BSS1.appendChild( itemGBData );
-        }
+        return;
     }
 
-    QTextStream out( xmlfile );
-    document.save( out, 4 );
+    xml_write(xmlfile);
+
     xmlfile->close();
 }
 
+void Terminal::slt_xml_close()
+{
+
+}
+
 void Terminal::slt_xml_exit()
+{
+
+}
+
+void Terminal::slt_xml_addGroup()
+{
+    if(treeWidget==NULL)    return;
+    if(tv==NULL)    return;
+
+    tv->NewTreeRoot("GROUP");
+}
+
+void Terminal::slt_xml_addNode()
+{
+    if(treeWidget==NULL)    return;
+    if(tv==NULL)    return;
+
+    if(treeWidget->topLevelItemCount()==0)  return; //没有根节点，无法添加子节点
+    tv->NewTreeNode("Name",0,"TEXT");
+}
+
+void Terminal::slt_xml_del()
 {
 
 }

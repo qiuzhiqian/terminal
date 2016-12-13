@@ -15,10 +15,14 @@ TEMPLATE = app
 SOURCES += main.cpp\
         terminal.cpp \
     sendbutton.cpp \
-    treeview.cpp
+    treeview.cpp \
+    mycombobox.cpp \
+    mylineedit.cpp
 
 HEADERS  += terminal.h \
     sendbutton.h \
-    treeview.h
+    treeview.h \
+    mycombobox.h \
+    mylineedit.h
 
 FORMS    += terminal.ui

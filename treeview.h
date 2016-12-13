@@ -3,12 +3,14 @@
 
 #include <QWidget>
 #include<QTreeWidgetItem>
-//#include "senditem.h"
+#include <QDomDocument>
 #include <QPushButton>
 #include <QLineEdit>
 #include <QComboBox>
 #include <QFileDialog>
 #include "sendbutton.h"
+#include "mylineedit.h"
+#include "mycombobox.h"
 
 
 class TreeView : public QWidget
@@ -19,8 +21,12 @@ public:
     explicit TreeView(QWidget *parent = 0,QTreeWidget *tw=0);
     ~TreeView();
 
-    QTreeWidgetItem * AddTreeRoot(int index=0, QString name="group");
-    QTreeWidgetItem * AddTreeNode(QTreeWidgetItem *parent=0,int index=0,QString name="node",int cmb_index=0,QString text="string");
+    QTreeWidgetItem * AddTreeRoot(QString name="GROUP");
+    QTreeWidgetItem * InsertTreeRoot(int index=0,QString name="GROUP");
+    QTreeWidgetItem * NewTreeRoot(QString name="GROUP");
+    QTreeWidgetItem * AddTreeNode(QTreeWidgetItem *parent=0,QString name="node",int cmb_index=0,QString text="string");
+    QTreeWidgetItem * InsertTreeNode(QTreeWidgetItem *parent=0,int index=0,QString name="node",int cmb_index=0,QString text="string");
+    QTreeWidgetItem * NewTreeNode(QString name="node",int cmb_index=0,QString text="string");
     void DelTreeNode();
 
 signals:
@@ -30,16 +36,6 @@ signals:
 private slots:
     void slt_tv_Source_currentItemChanged(QTreeWidgetItem *current, QTreeWidgetItem *previous);
     void slt_send();
-
-//    void slt_btn_Add_clicked();
-
-//    void slt_btn_AddRoot_clicked();
-
-//    void slt_btn_Del_clicked();
-
-//    void slt_btn_Modify_clicked();
-    //void slt_btn_Load_clicked();
-
 
 private:
     QTreeWidget *treeW;

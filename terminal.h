@@ -29,12 +29,18 @@ public:
     ~Terminal();
 
     bool xml_read(QIODevice *device);
+    void xml_write(QIODevice *device);
 
 private slots:
     void slt_xml_new();
     void slt_xml_open();
     void slt_xml_save();
+    void slt_xml_close();
     void slt_xml_exit();
+
+    void slt_xml_addGroup();
+    void slt_xml_addNode();
+    void slt_xml_del();
 
     void slt_toolExtand();
 
@@ -46,6 +52,7 @@ private:
     QMenu *menu_file;
     QAction *act_creat;
     QAction *act_open;
+    QAction *act_save;
     QAction *act_close;
     QAction *act_exit;
 
@@ -82,7 +89,7 @@ private:
 
     TreeView *tv;
     QFile *xmlfile;
-    QDomDocument *domDocument;       //定义DOM对象
+//    QDomDocument *domDocument;       //定义DOM对象
     QTreeWidget *treeWidget;
 
 };

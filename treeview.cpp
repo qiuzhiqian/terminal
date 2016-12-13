@@ -4,6 +4,7 @@
 TreeView::TreeView(QWidget *parent,QTreeWidget *tw) :
     QWidget(parent)
 {
+    //domDocument=NULL;
     treeW=tw;
     treeW->setColumnCount(4);
     treeW->setHeaderLabels(QStringList()<<tr("发送")<<tr("名称")<<tr("格式")<<tr("内容"));
@@ -15,42 +16,200 @@ TreeView::~TreeView()
 {
 }
 
-QTreeWidgetItem * TreeView::AddTreeRoot(int index,QString name)
+QTreeWidgetItem * TreeView::AddTreeRoot(QString name)
 {
-    QTreeWidgetItem * item=new QTreeWidgetItem();
-    //treeW->addTopLevelItem(item);
-    treeW->insertTopLevelItem(index,item);
-    treeW->setItemWidget(item,0,new QLineEdit(name));
+    QTreeWidgetItem * newitem=new QTreeWidgetItem();
+    treeW->addTopLevelItem(newitem);
+    //treeW->insertTopLevelItem(index,item);
+    treeW->setItemWidget(newitem,0,new MyLineEdit(treeW,newitem,name));
 
     qDebug()<<"add a root";
-    return item;
+    return newitem;
 }
 
-QTreeWidgetItem * TreeView::AddTreeNode(QTreeWidgetItem *parent,int index,QString name,int cmb_index,QString text)
+QTreeWidgetItem * TreeView::InsertTreeRoot(int index,QString name)
 {
-    QTreeWidgetItem * item=new QTreeWidgetItem();
-    SendButton *btn=new SendButton(item,QString::number(index));
-    QLineEdit *letn=new QLineEdit(name);
-    QComboBox *cmb=new QComboBox();
-    cmb->addItem(tr("十六进制"));
-    cmb->addItem(tr("字符串"));
-    cmb->addItem(tr("文件"));
+    int groupcnt=treeW->children().length();
+    if(index>groupcnt)
+    {
+        index=groupcnt;
+    }
+    QTreeWidgetItem * newitem=new QTreeWidgetItem();
+    //treeW->addTopLevelItem(newitem);
+    treeW->insertTopLevelItem(index,newitem);
+    treeW->setItemWidget(newitem,0,new MyLineEdit(treeW,newitem,name));
+
+    qDebug()<<"add a root";
+    return newitem;
+}
+
+QTreeWidgetItem * TreeView::NewTreeRoot(QString name)
+{
+    QTreeWidgetItem * newitem=new QTreeWidgetItem();
+
+
+    QTreeWidgetItem *citem=treeW->currentItem();
+
+    if(citem!=Q_NULLPTR)                //有节点被选中
+    {
+        if(citem->parent()!=Q_NULLPTR)  //被选中的是子节点
+        {
+            //在当前节点所在组下方添加组
+            int groupnum=treeW->indexOfTopLevelItem(citem->parent());       //获取当前组的索引
+            qDebug()<<"groupnum="<<groupnum;
+            treeW->insertTopLevelItem(groupnum+1,newitem);
+        }
+        else                            //被选中的是根节点
+        {
+            //直接在当前组下方添加组
+            int groupnum=treeW->indexOfTopLevelItem(citem);       //获取当前组的索引
+            qDebug()<<"groupnum="<<groupnum;
+            treeW->insertTopLevelItem(groupnum+1,newitem);
+        }
+    }
+    else                                //没有节点被选中
+    {
+        qDebug()<<"add groupnum";
+        treeW->addTopLevelItem(newitem);
+    }
+    treeW->setItemWidget(newitem,0,new MyLineEdit(treeW,newitem,name));
+    return newitem;
+}
+
+QTreeWidgetItem * TreeView::AddTreeNode(QTreeWidgetItem *parent,QString name,int cmb_index,QString text)
+{
+    int nodecnt=parent->childCount();
+//    QTreeWidgetItem * item=new QTreeWidgetItem();
+//    SendButton *btn=new SendButton(treeW,item,"S");
+//    QLineEdit *letn=new QLineEdit(name);
+//    QComboBox *cmb=new QComboBox();
+//    cmb->addItem("Hex");
+//    cmb->addItem("String");
+//    cmb->addItem("File");
+//    cmb->setCurrentIndex(cmb_index);
+//    QLineEdit *lett=new QLineEdit(text);
+    QTreeWidgetItem * newitem=new QTreeWidgetItem();
+    SendButton *btn=new SendButton(treeW,newitem,"S");
+    MyLineEdit *letn=new MyLineEdit(treeW,newitem,name);
+    MyComboBox *cmb=new MyComboBox(treeW,newitem);
+    cmb->addItem("Hex");
+    cmb->addItem("String");
+    cmb->addItem("File");
     cmb->setCurrentIndex(cmb_index);
-    QLineEdit *lett=new QLineEdit(text);
+    MyLineEdit *lett=new MyLineEdit(treeW,newitem,text);
 
 
-    //parent->addChild(item);
-    parent->insertChild(index,item);
+    parent->addChild(newitem);
+    //parent->insertChild(index,newitem);
 
     //item->setText(0,QString::number(index));
-    treeW->setItemWidget(item,0,btn);
-    treeW->setItemWidget(item,1,letn);
-    treeW->setItemWidget(item,2,cmb);
-    treeW->setItemWidget(item,3,lett);
+    treeW->setItemWidget(newitem,0,btn);
+    treeW->setItemWidget(newitem,1,letn);
+    treeW->setItemWidget(newitem,2,cmb);
+    treeW->setItemWidget(newitem,3,lett);
+
+    connect(btn,SIGNAL(clicked(bool)),this,SLOT(slt_send()));
+    //connect(letn,SIGNAL())
+    qDebug()<<"add a node";
+    return newitem;
+}
+
+QTreeWidgetItem * TreeView::InsertTreeNode(QTreeWidgetItem *parent,int index,QString name,int cmb_index,QString text)
+{
+    int nodecnt=parent->childCount();
+    if(index>nodecnt)
+    {
+        index=nodecnt;
+    }
+
+    QTreeWidgetItem * newitem=new QTreeWidgetItem();
+    SendButton *btn=new SendButton(treeW,newitem,"S");
+    MyLineEdit *letn=new MyLineEdit(treeW,newitem,name);
+    MyComboBox *cmb=new MyComboBox(treeW,newitem);
+    cmb->addItem("Hex");
+    cmb->addItem("String");
+    cmb->addItem("File");
+    cmb->setCurrentIndex(cmb_index);
+    MyLineEdit *lett=new MyLineEdit(treeW,newitem,text);
+
+
+    //parent->addChild(newitem);
+    parent->insertChild(index,newitem);
+
+    //item->setText(0,QString::number(index));
+    treeW->setItemWidget(newitem,0,btn);
+    treeW->setItemWidget(newitem,1,letn);
+    treeW->setItemWidget(newitem,2,cmb);
+    treeW->setItemWidget(newitem,3,lett);
 
     connect(btn,SIGNAL(clicked(bool)),this,SLOT(slt_send()));
     qDebug()<<"add a node";
-    return item;
+    return newitem;
+}
+
+QTreeWidgetItem * TreeView::NewTreeNode(QString name,int cmb_index,QString text)
+{
+    QTreeWidgetItem * newitem=new QTreeWidgetItem();
+
+    QTreeWidgetItem *citem=treeW->currentItem();
+    int groupnum;
+    int nodenum;
+
+    if(citem!=Q_NULLPTR)                //有节点被选中
+    {
+        if(citem->parent()!=Q_NULLPTR)  //被选中的是子节点
+        {
+            //在当前子节点下方添加子节点
+            int nodeindex=citem->parent()->indexOfChild(citem);     //当前子节点索引
+            qDebug()<<"nodeindex="<<nodeindex;
+            citem->parent()->insertChild(nodeindex+1,newitem);         //在当前节点后面添加
+        }
+        else                            //被选中的是根节点
+        {
+            //直接在当前组最后添加子节点
+            citem->addChild(newitem);
+        }
+    }
+    else                                //最后组的最后添加子节点
+    {
+        groupnum=treeW->topLevelItemCount();
+        nodenum=treeW->topLevelItem(groupnum-1)->childCount();
+        if(groupnum>0)
+        {
+            qDebug()<<"groupnum="<<groupnum;
+            treeW->topLevelItem(groupnum-1)->addChild(newitem);
+        }
+        else
+        {
+            qDebug()<<"No a group";
+        }
+    }
+
+
+//    SendButton *btn=new SendButton(treeW,newitem,"S");
+//    QLineEdit *letn=new QLineEdit(name);
+//    QComboBox *cmb=new QComboBox();
+//    cmb->addItem(tr("十六进制"));
+//    cmb->addItem(tr("字符串"));
+//    cmb->addItem(tr("文件"));
+//    cmb->setCurrentIndex(cmb_index);
+//    QLineEdit *lett=new QLineEdit(text);
+    SendButton *btn=new SendButton(treeW,newitem,"S");
+    MyLineEdit *letn=new MyLineEdit(treeW,newitem,name);
+    MyComboBox *cmb=new MyComboBox(treeW,newitem);
+    cmb->addItem("Hex");
+    cmb->addItem("String");
+    cmb->addItem("File");
+    cmb->setCurrentIndex(cmb_index);
+    MyLineEdit *lett=new MyLineEdit(treeW,newitem,text);
+
+    treeW->setItemWidget(newitem,0,btn);
+    treeW->setItemWidget(newitem,1,letn);
+    treeW->setItemWidget(newitem,2,cmb);
+    treeW->setItemWidget(newitem,3,lett);
+
+    connect(btn,SIGNAL(clicked(bool)),this,SLOT(slt_send()));
+    return newitem;
 }
 
 void TreeView::DelTreeNode()
@@ -89,60 +248,7 @@ void TreeView::slt_tv_Source_currentItemChanged(QTreeWidgetItem *current, QTreeW
     current->setBackground(1,Qt::red);
 }
 
-//void TreeView::slt_btn_Add_clicked()
-//{
-//    QTreeWidgetItem * item= ui->tv_Source->currentItem();
-//    if(item!=Q_NULLPTR)
-//    {
-//        AddTreeNode(ui->tv_Source,item,"new","new");
-//    }
-//    else
-//    {
-//        AddTreeRoot(ui->tv_Source,"new","new");
-//    }
-//    qDebug()<<"add a node";
-//}
 
-//void TreeView::slt_btn_AddRoot_clicked()
-//{
-//    AddTreeRoot(ui->tv_Source,"new","new");
-//    qDebug()<<"add a root";
-//}
-
-//void TreeView::slt_btn_Del_clicked()
-//{
-//    DelTreeNode(ui->tv_Source);
-//}
-
-//void TreeView::slt_btn_Modify_clicked()
-//{
-//    QTreeWidgetItem * currentItem = ui->tv_Source->currentItem();
-
-//    if(currentItem==Q_NULLPTR)
-//    {
-//        return;
-//    }
-//    for(int i=0;i<currentItem->columnCount();i++)
-//    {
-//        currentItem->setText(i,tr("Modify")+QString::number(i));
-//    }
-//}
-
-//void TreeView::slt_btn_Load_clicked()
-//{
-//    QString fileName =
-//            QFileDialog::getOpenFileName(this, tr("Open BSP File"),
-//                                         QDir::currentPath(),
-//                                         tr("XML Files (*.xbel *.xml)"));
-//    if (fileName.isEmpty())
-//        return;
-
-//    xmlfile=new QFile(fileName);
-//    if (!xmlfile->open(QFile::ReadOnly | QFile::Text)) {
-//        qDebug("Cannot read file %s:\n%s.",fileName,xmlfile->errorString());
-//        return;
-//    }
-//}
 
 void TreeView::slt_send()
 {
@@ -152,11 +258,7 @@ void TreeView::slt_send()
     QComboBox *tempTCmb=(QComboBox *)treeW->itemWidget(currentItem,2);
     QLineEdit *tempDLet=(QLineEdit *)treeW->itemWidget(currentItem,3);
     qDebug()<<tempSButton->text()<<" "<<tempNLet->text()<<" "<<tempTCmb->currentText()<<"" <<tempDLet->text();
-    //qDebug()<<sender()->parent()->metaObject()->className();
-    //if(index==0)
-//    {
-//        qDebug()<<twi->text(index);
-//    }
+
     sgn_send(currentItem);
     //qDebug()<<((QPushButton *)(treeW->itemWidget(currentItem,0)))->text();
 }

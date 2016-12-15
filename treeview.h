@@ -29,6 +29,9 @@ public:
     QTreeWidgetItem * NewTreeNode(QString name="node",int cmb_index=0,QString text="string");
     void DelTreeNode();
 
+    void setChangedFlag(bool flag);
+    bool getChangedFlag();
+
 signals:
     void sgn_send(QTreeWidgetItem *twi);
 
@@ -36,9 +39,11 @@ signals:
 private slots:
     void slt_tv_Source_currentItemChanged(QTreeWidgetItem *current, QTreeWidgetItem *previous);
     void slt_send();
+    void slt_treeChanged();
 
 private:
     QTreeWidget *treeW;
+    bool changedFlag;
 
 
 };

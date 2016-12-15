@@ -16,6 +16,15 @@
 #include <QTextEdit>
 #include "treeview.h"
 
+#include <QCloseEvent>
+
+#include <QtSerialPort/QSerialPort>
+#include <QtSerialPort/QSerialPortInfo>
+#include <QMessageBox>
+
+#include <QListView>
+#include <QStandardItemModel>
+
 namespace Ui {
 class Terminal;
 }
@@ -31,6 +40,10 @@ public:
     bool xml_read(QIODevice *device);
     void xml_write(QIODevice *device);
 
+    //数据转换
+    QByteArray HexStingEncode(QByteArray hexString);
+    QByteArray HexStingCode(QByteArray rawString);
+
 private slots:
     void slt_xml_new();
     void slt_xml_open();
@@ -44,7 +57,11 @@ private slots:
 
     void slt_toolExtand();
 
-
+    void slt_com_open();
+    void slt_com_recClr();
+    void slt_com_hexWatch();
+    void slt_com_recdata();
+    void slt_com_senddata(QTreeWidgetItem *itemtext);
 
 private:
     Ui::Terminal *ui;
@@ -85,12 +102,20 @@ private:
     QAction *act_addnode;
 
     QSplitter *spt_sendTree;
-    QTextEdit *let_Rec;
+    QTextEdit *tet_Rec;
 
     TreeView *tv;
     QFile *xmlfile;
 //    QDomDocument *domDocument;       //定义DOM对象
     QTreeWidget *treeWidget;
+
+    //串口定义
+    QSerialPort *my_port;
+    bool hexEnable;
+    QString receString;
+
+protected:
+    virtual void closeEvent(QCloseEvent *event);
 
 };
 

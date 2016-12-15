@@ -5,6 +5,7 @@ TreeView::TreeView(QWidget *parent,QTreeWidget *tw) :
     QWidget(parent)
 {
     //domDocument=NULL;
+    changedFlag=false;
     treeW=tw;
     treeW->setColumnCount(4);
     treeW->setHeaderLabels(QStringList()<<tr("发送")<<tr("名称")<<tr("格式")<<tr("内容"));
@@ -24,6 +25,7 @@ QTreeWidgetItem * TreeView::AddTreeRoot(QString name)
     treeW->setItemWidget(newitem,0,new MyLineEdit(treeW,newitem,name));
 
     qDebug()<<"add a root";
+    //setChangedFlag(true);
     return newitem;
 }
 
@@ -40,6 +42,7 @@ QTreeWidgetItem * TreeView::InsertTreeRoot(int index,QString name)
     treeW->setItemWidget(newitem,0,new MyLineEdit(treeW,newitem,name));
 
     qDebug()<<"add a root";
+    //setChangedFlag(true);
     return newitem;
 }
 
@@ -73,21 +76,13 @@ QTreeWidgetItem * TreeView::NewTreeRoot(QString name)
         treeW->addTopLevelItem(newitem);
     }
     treeW->setItemWidget(newitem,0,new MyLineEdit(treeW,newitem,name));
+    setChangedFlag(true);
     return newitem;
 }
 
 QTreeWidgetItem * TreeView::AddTreeNode(QTreeWidgetItem *parent,QString name,int cmb_index,QString text)
 {
     int nodecnt=parent->childCount();
-//    QTreeWidgetItem * item=new QTreeWidgetItem();
-//    SendButton *btn=new SendButton(treeW,item,"S");
-//    QLineEdit *letn=new QLineEdit(name);
-//    QComboBox *cmb=new QComboBox();
-//    cmb->addItem("Hex");
-//    cmb->addItem("String");
-//    cmb->addItem("File");
-//    cmb->setCurrentIndex(cmb_index);
-//    QLineEdit *lett=new QLineEdit(text);
     QTreeWidgetItem * newitem=new QTreeWidgetItem();
     SendButton *btn=new SendButton(treeW,newitem,"S");
     MyLineEdit *letn=new MyLineEdit(treeW,newitem,name);
@@ -109,8 +104,11 @@ QTreeWidgetItem * TreeView::AddTreeNode(QTreeWidgetItem *parent,QString name,int
     treeW->setItemWidget(newitem,3,lett);
 
     connect(btn,SIGNAL(clicked(bool)),this,SLOT(slt_send()));
-    //connect(letn,SIGNAL())
+    connect(letn,SIGNAL(textChanged(QString)),this,SLOT(slt_treeChanged()));
+    connect(cmb,SIGNAL(currentIndexChanged(int)),this,SLOT(slt_treeChanged()));
+    connect(lett,SIGNAL(textChanged(QString)),this,SLOT(slt_treeChanged()));
     qDebug()<<"add a node";
+    //setChangedFlag(true);
     return newitem;
 }
 
@@ -143,7 +141,11 @@ QTreeWidgetItem * TreeView::InsertTreeNode(QTreeWidgetItem *parent,int index,QSt
     treeW->setItemWidget(newitem,3,lett);
 
     connect(btn,SIGNAL(clicked(bool)),this,SLOT(slt_send()));
+    connect(letn,SIGNAL(textChanged(QString)),this,SLOT(slt_treeChanged()));
+    connect(cmb,SIGNAL(currentIndexChanged(int)),this,SLOT(slt_treeChanged()));
+    connect(lett,SIGNAL(textChanged(QString)),this,SLOT(slt_treeChanged()));
     qDebug()<<"add a node";
+    //setChangedFlag(true);
     return newitem;
 }
 
@@ -185,15 +187,6 @@ QTreeWidgetItem * TreeView::NewTreeNode(QString name,int cmb_index,QString text)
         }
     }
 
-
-//    SendButton *btn=new SendButton(treeW,newitem,"S");
-//    QLineEdit *letn=new QLineEdit(name);
-//    QComboBox *cmb=new QComboBox();
-//    cmb->addItem(tr("十六进制"));
-//    cmb->addItem(tr("字符串"));
-//    cmb->addItem(tr("文件"));
-//    cmb->setCurrentIndex(cmb_index);
-//    QLineEdit *lett=new QLineEdit(text);
     SendButton *btn=new SendButton(treeW,newitem,"S");
     MyLineEdit *letn=new MyLineEdit(treeW,newitem,name);
     MyComboBox *cmb=new MyComboBox(treeW,newitem);
@@ -209,6 +202,10 @@ QTreeWidgetItem * TreeView::NewTreeNode(QString name,int cmb_index,QString text)
     treeW->setItemWidget(newitem,3,lett);
 
     connect(btn,SIGNAL(clicked(bool)),this,SLOT(slt_send()));
+    connect(letn,SIGNAL(textChanged(QString)),this,SLOT(slt_treeChanged()));
+    connect(cmb,SIGNAL(currentIndexChanged(int)),this,SLOT(slt_treeChanged()));
+    connect(lett,SIGNAL(textChanged(QString)),this,SLOT(slt_treeChanged()));
+    setChangedFlag(true);
     return newitem;
 }
 
@@ -230,6 +227,17 @@ void TreeView::DelTreeNode()
         //如果有父节点就要用父节点的takeChild删除节点
         delete currentItem->parent()->takeChild(treeW->currentIndex().row());
     }
+    setChangedFlag(true);
+}
+
+void TreeView::setChangedFlag(bool flag)
+{
+    changedFlag=flag;
+}
+
+bool TreeView::getChangedFlag()
+{
+    return changedFlag;
 }
 
 void TreeView::slt_tv_Source_currentItemChanged(QTreeWidgetItem *current, QTreeWidgetItem *previous)
@@ -248,8 +256,6 @@ void TreeView::slt_tv_Source_currentItemChanged(QTreeWidgetItem *current, QTreeW
     current->setBackground(1,Qt::red);
 }
 
-
-
 void TreeView::slt_send()
 {
     SendButton *tempSButton=(SendButton *)sender();
@@ -257,8 +263,14 @@ void TreeView::slt_send()
     QLineEdit *tempNLet=(QLineEdit *)treeW->itemWidget(currentItem,1);
     QComboBox *tempTCmb=(QComboBox *)treeW->itemWidget(currentItem,2);
     QLineEdit *tempDLet=(QLineEdit *)treeW->itemWidget(currentItem,3);
-    qDebug()<<tempSButton->text()<<" "<<tempNLet->text()<<" "<<tempTCmb->currentText()<<"" <<tempDLet->text();
+    qDebug()<<tempSButton->text()<<" "<<tempNLet->text()<<" "<<tempTCmb->currentText()<<" "<<tempDLet->text();
 
     sgn_send(currentItem);
     //qDebug()<<((QPushButton *)(treeW->itemWidget(currentItem,0)))->text();
+}
+
+void TreeView::slt_treeChanged()
+{
+    setChangedFlag(true);
+    qDebug()<<"tree has changed";
 }

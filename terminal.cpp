@@ -1,6 +1,7 @@
 #include "terminal.h"
 #include "ui_terminal.h"
 #include <QDebug>
+#include <QMetaEnum>
 
 Terminal::Terminal(QWidget *parent) :
     QMainWindow(parent),
@@ -377,14 +378,14 @@ void Terminal::slt_xml_close()
     bool chgflag=tv->getChangedFlag();
     if(chgflag==true)
     {                       //此处设置一个QMassgeBox
-        QMessageBox msgBox;
-        msgBox.setText(tr("The document has been modified."));
-        msgBox.setInformativeText(tr("Do you want to save your changes?"));
-        //msgBox.setDetailedText(tr("Differences here..."));
-        msgBox.setStandardButtons(QMessageBox::Save
+        QMessageBox *msgBox=new QMessageBox(this);
+        msgBox->setText(tr("The document has been modified."));
+        msgBox->setInformativeText(tr("Do you want to save your changes?"));
+        //msgBox->setDetailedText(tr("Differences here..."));
+        msgBox->setStandardButtons(QMessageBox::Save
                                   | QMessageBox::Cancel);
-        msgBox.setDefaultButton(QMessageBox::Save);
-        int ret = msgBox.exec();
+        msgBox->setDefaultButton(QMessageBox::Save);
+        int ret = msgBox->exec();
         switch (ret) {
         case QMessageBox::Save:
             qDebug() << "Save document!";
@@ -463,81 +464,102 @@ void Terminal::slt_com_open()
         if(cbx_com->count()==0) return;
 
         my_port->setPortName(cbx_com->currentText());
-        my_port->open(QIODevice::ReadWrite);
-        my_port->setBaudRate(cbx_bdrate->currentText().toInt());
+        if(my_port->open(QIODevice::ReadWrite))     //串口打开成功
+        {
+            my_port->setBaudRate(cbx_bdrate->currentText().toInt());
 
-        QString databitString=cbx_databit->currentText();
-        if(databitString==tr("5位"))
-        {
-            my_port->setDataBits(QSerialPort::Data5);
+            QString databitString=cbx_databit->currentText();
+            if(databitString==tr("5位"))
+            {
+                my_port->setDataBits(QSerialPort::Data5);
+            }
+            else if(databitString==tr("6位"))
+            {
+                my_port->setDataBits(QSerialPort::Data6);
+            }
+            else if(databitString==tr("7位"))
+            {
+                my_port->setDataBits(QSerialPort::Data7);
+            }
+            else if(databitString==tr("8位"))
+            {
+                my_port->setDataBits(QSerialPort::Data8);
+            }
+
+            QString parityString=cbx_parity->currentText();
+            if(parityString==tr("无校验"))
+            {
+                my_port->setParity(QSerialPort::NoParity);
+            }
+            else if(parityString==tr("奇校验"))
+            {
+                my_port->setParity(QSerialPort::OddParity);
+            }
+            else if(parityString==tr("偶校验"))
+            {
+                my_port->setParity(QSerialPort::EvenParity);
+            }
+
+            QString stopbitString=cbx_stopbit->currentText();
+            if(stopbitString==tr("1位"))
+            {
+                my_port->setStopBits(QSerialPort::OneStop);
+            }
+            else if(stopbitString==tr("1.5位"))
+            {
+                my_port->setStopBits(QSerialPort::OneAndHalfStop);
+            }
+            else if(stopbitString==tr("2位"))
+            {
+                my_port->setStopBits(QSerialPort::TwoStop);
+            }
+
+            QString flowcontrolString=cbx_flowctrl->currentText();
+
+            if(flowcontrolString==tr("无流控"))
+            {
+                my_port->setFlowControl(QSerialPort::NoFlowControl);
+            }
+            else if(flowcontrolString==tr("硬件流"))
+            {
+                my_port->setFlowControl(QSerialPort::HardwareControl);
+            }
+            else if(flowcontrolString==tr("软件流"))
+            {
+                my_port->setFlowControl(QSerialPort::SoftwareControl);
+            }
+
+            cbx_com->setEnabled(false);
+            cbx_bdrate->setEnabled(false);
+            cbx_databit->setEnabled(false);
+            cbx_parity->setEnabled(false);
+            cbx_stopbit->setEnabled(false);
+            cbx_flowctrl->setEnabled(false);
+
+            btn_open->setStyleSheet("background-color:red");
+            btn_open->setText(tr("关闭"));
+            connect(my_port,SIGNAL(readyRead()),this,SLOT(slt_com_recdata()));
+            //connect(ui->btn_send,SIGNAL(clicked(bool)),this,SLOT(slt_senddata()));
         }
-        else if(databitString==tr("6位"))
+        else        //串口打开失败
         {
-            my_port->setDataBits(QSerialPort::Data6);
-        }
-        else if(databitString==tr("7位"))
-        {
-            my_port->setDataBits(QSerialPort::Data7);
-        }
-        else if(databitString==tr("8位"))
-        {
-            my_port->setDataBits(QSerialPort::Data8);
+//            switch(my_port->error())
+//            {
+
+//            }
+            QMetaEnum metaEnum = QMetaEnum::fromType<QSerialPort::SerialPortError>();       //将枚举转化为字符串，方便显示
+            const char* s = metaEnum.valueToKey(my_port->error());              //获取错误信息
+            qDebug()<<s;
+            QMessageBox *msgBox=new QMessageBox(this);                     //串口未打开，创建一个消息提醒框
+            msgBox->setWindowTitle(tr("Notice"));
+            msgBox->setText(tr("Serialport open error!"));
+            //msgBox->setInformativeText();
+            msgBox->setDetailedText(s);
+            msgBox->setStandardButtons(QMessageBox::Ok);
+            msgBox->setDefaultButton(QMessageBox::Ok);
+            msgBox->exec();
         }
 
-        QString parityString=cbx_parity->currentText();
-        if(parityString==tr("无校验"))
-        {
-            my_port->setParity(QSerialPort::NoParity);
-        }
-        else if(parityString==tr("奇校验"))
-        {
-            my_port->setParity(QSerialPort::OddParity);
-        }
-        else if(parityString==tr("偶校验"))
-        {
-            my_port->setParity(QSerialPort::EvenParity);
-        }
-
-        QString stopbitString=cbx_stopbit->currentText();
-        if(stopbitString==tr("1位"))
-        {
-            my_port->setStopBits(QSerialPort::OneStop);
-        }
-        else if(stopbitString==tr("1.5位"))
-        {
-            my_port->setStopBits(QSerialPort::OneAndHalfStop);
-        }
-        else if(stopbitString==tr("2位"))
-        {
-            my_port->setStopBits(QSerialPort::TwoStop);
-        }
-
-        QString flowcontrolString=cbx_flowctrl->currentText();
-
-        if(flowcontrolString==tr("无流控"))
-        {
-            my_port->setFlowControl(QSerialPort::NoFlowControl);
-        }
-        else if(flowcontrolString==tr("硬件流"))
-        {
-            my_port->setFlowControl(QSerialPort::HardwareControl);
-        }
-        else if(flowcontrolString==tr("软件流"))
-        {
-            my_port->setFlowControl(QSerialPort::SoftwareControl);
-        }
-
-        cbx_com->setEnabled(false);
-        cbx_bdrate->setEnabled(false);
-        cbx_databit->setEnabled(false);
-        cbx_parity->setEnabled(false);
-        cbx_stopbit->setEnabled(false);
-        cbx_flowctrl->setEnabled(false);
-
-        btn_open->setStyleSheet("background-color:red");
-        btn_open->setText(tr("关闭"));
-        connect(my_port,SIGNAL(readyRead()),this,SLOT(slt_com_recdata()));
-        //connect(ui->btn_send,SIGNAL(clicked(bool)),this,SLOT(slt_senddata()));
     }
     else if(btn_open->text()==tr("关闭"))
     {
@@ -614,14 +636,14 @@ void Terminal::slt_com_senddata(QTreeWidgetItem *itemtext)
 {
     if(btn_open->text()==tr("打开"))
     {
-        QMessageBox msgBox;                     //串口未打开，创建一个消息提醒框
-        msgBox.setWindowTitle(tr("Notice"));
-        msgBox.setText(tr("Please open a serialport!"));
-        //msgBox.setInformativeText(tr("Please open a serialport!"));
-        //msgBox.setDetailedText(tr("Differences here..."));
-        msgBox.setStandardButtons(QMessageBox::Ok);
-        msgBox.setDefaultButton(QMessageBox::Ok);
-        int ret = msgBox.exec();
+        QMessageBox *msgBox=new QMessageBox(this);                     //串口未打开，创建一个消息提醒框
+        msgBox->setWindowTitle(tr("Notice"));
+        msgBox->setText(tr("Please open a serialport!"));
+        //msgBox->setInformativeText(tr("Please open a serialport!"));
+        //msgBox->setDetailedText(tr("Differences here..."));
+        msgBox->setStandardButtons(QMessageBox::Ok);
+        msgBox->setDefaultButton(QMessageBox::Ok);
+        int ret = msgBox->exec();
         if(ret == QMessageBox::Ok)
             return;     //串口未打开，禁止发送
         else
@@ -633,7 +655,8 @@ void Terminal::slt_com_senddata(QTreeWidgetItem *itemtext)
     QLineEdit *tempDLet=(QLineEdit *)treeWidget->itemWidget(itemtext,3);
     qDebug()<<tempNLet->text()<<" "<<tempTCmb->currentText()<<" "<<tempDLet->text();
 
-    QByteArray tempData=tempDLet->text().toLocal8Bit().toUpper();       //全部转化为大写
+    QString s=tempDLet->text().replace("\\r\\n","\r\n");
+    QByteArray tempData=s.toLocal8Bit();       //全部转化为大写
 
     if(tempTCmb->currentText()=="Hex")
     {

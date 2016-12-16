@@ -141,8 +141,11 @@ Terminal::Terminal(QWidget *parent) :
         qDebug() << "Serial number: " << info.serialNumber();
 
         item = new QStandardItem(info.portName());
-        QString comtips=info.portName()+"\r\n"+info.description()+"\r\n"+info.manufacturer()+"\r\n"+info.manufacturer();
-        item->setToolTip(comtips);
+        QString comtips="Name:"+info.portName()+"\r\n"+
+                "Description:"+info.description()+"\r\n"+
+                "Manufacturer:"+info.manufacturer()+"\r\n"+
+                "Serial number:"+info.serialNumber();
+        item->setToolTip(comtips);                                  //设置提示信息
         model->appendRow(item);
         //cbx_com->addItem(info.portName());
     }
@@ -609,7 +612,22 @@ void Terminal::slt_com_recdata()
 
 void Terminal::slt_com_senddata(QTreeWidgetItem *itemtext)
 {
-    if(btn_open->text()==tr("打开"))  return;     //串口未打开，禁止发送
+    if(btn_open->text()==tr("打开"))
+    {
+        QMessageBox msgBox;                     //串口未打开，创建一个消息提醒框
+        msgBox.setWindowTitle(tr("Notice"));
+        msgBox.setText(tr("Please open a serialport!"));
+        //msgBox.setInformativeText(tr("Please open a serialport!"));
+        //msgBox.setDetailedText(tr("Differences here..."));
+        msgBox.setStandardButtons(QMessageBox::Ok);
+        msgBox.setDefaultButton(QMessageBox::Ok);
+        int ret = msgBox.exec();
+        if(ret == QMessageBox::Ok)
+            return;     //串口未打开，禁止发送
+        else
+            return;
+    }
+
     QLineEdit *tempNLet=(QLineEdit *)treeWidget->itemWidget(itemtext,1);
     QComboBox *tempTCmb=(QComboBox *)treeWidget->itemWidget(itemtext,2);
     QLineEdit *tempDLet=(QLineEdit *)treeWidget->itemWidget(itemtext,3);
@@ -627,7 +645,7 @@ void Terminal::slt_com_senddata(QTreeWidgetItem *itemtext)
     {
         my_port->write(tempData.data(),tempData.length());      //不论是数据还是长度，都要转换成无编码的数据
     }
-    else if(tempTCmb->currentText()=="File")
+    else if(tempTCmb->currentText()=="File")                    //将文本中的数据以字符串形式发送出去
     {
 
     }

@@ -25,6 +25,14 @@
 #include <QListView>
 #include <QStandardItemModel>
 
+#ifdef __cplusplus
+extern "C" {
+#endif
+//#include "Ymodem.h"
+#ifdef __cplusplus
+}
+#endif
+
 namespace Ui {
 class Terminal;
 }

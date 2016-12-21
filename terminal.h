@@ -25,6 +25,9 @@
 #include <QListView>
 #include <QStandardItemModel>
 
+#include <QThread>
+#include "ftphandle.h"
+
 #ifdef __cplusplus
 extern "C" {
 #endif
@@ -71,14 +74,30 @@ private slots:
     void slt_com_recdata();
     void slt_com_senddata(QTreeWidgetItem *itemtext);
 
+    void slt_ftp_start();
+    void slt_ftp_handle(int opt,int pec);
+    void slt_ftp_end();
+
 private:
     Ui::Terminal *ui;
 
-    QMenu *menu_file;
-    QAction *act_creat;
-    QAction *act_open;
-    QAction *act_save;
-    QAction *act_close;
+    QMenu *menu_file;       //总menu
+    QMenu *ProjectMenu;
+    QMenu *SetMenu;
+    QMenu *FTPMenu;
+    QMenu *XModemMenu;
+    QMenu *YModemMenu;
+    QMenu *ZModemMenu;
+    QAction *act_project_creat;
+    QAction *act_project_open;
+    QAction *act_project_save;
+    QAction *act_project_close;
+    QAction *act_ftp_xsend;
+    QAction *act_ftp_xreceive;
+    QAction *act_ftp_ysend;
+    QAction *act_ftp_yreceive;
+    QAction *act_ftp_zsend;
+    QAction *act_ftp_zreceive;
     QAction *act_exit;
 
     QWidget *toolWidget;
@@ -122,6 +141,10 @@ private:
     bool hexEnable;
     QString receString;
 
+    QString filepath;
+    QByteArray filedata;
+    FtpHandle *ftphd;
+    QThread *thd;
 protected:
     virtual void closeEvent(QCloseEvent *event);
 

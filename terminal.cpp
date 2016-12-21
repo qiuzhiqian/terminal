@@ -16,24 +16,55 @@ Terminal::Terminal(QWidget *parent) :
     int threeLength=75;
 
     menu_file=new QMenu();
-    act_creat=new QAction(tr("新建"));
-    act_open=new QAction(tr("打开"));
-    act_save=new QAction(tr("保存"));
-    act_close=new QAction(tr("关闭"));
+
+    ProjectMenu=new QMenu(tr("工程"));
+    act_project_creat=new QAction(tr("新建"));
+    act_project_open=new QAction(tr("打开"));
+    act_project_save=new QAction(tr("保存"));
+    act_project_close=new QAction(tr("关闭"));
+    ProjectMenu->addAction(act_project_creat);
+    ProjectMenu->addAction(act_project_open);
+    ProjectMenu->addAction(act_project_save);
+    ProjectMenu->addAction(act_project_close);
+
+    SetMenu=new QMenu(tr("设置"));
+
+    FTPMenu=new QMenu(tr("文件传输"));
+    XModemMenu=new QMenu(tr("XModem"));
+    act_ftp_xsend=new QAction(tr("发送"));
+    act_ftp_xreceive=new QAction(tr("接收"));
+    XModemMenu->addAction(act_ftp_xsend);
+    XModemMenu->addAction(act_ftp_xreceive);
+    YModemMenu=new QMenu(tr("YModem"));
+    act_ftp_ysend=new QAction(tr("发送"));
+    act_ftp_yreceive=new QAction(tr("接收"));
+    YModemMenu->addAction(act_ftp_ysend);
+    YModemMenu->addAction(act_ftp_yreceive);
+    ZModemMenu=new QMenu(tr("ZModem"));
+    act_ftp_zsend=new QAction(tr("发送"));
+    act_ftp_zreceive=new QAction(tr("接收"));
+    ZModemMenu->addAction(act_ftp_zsend);
+    ZModemMenu->addAction(act_ftp_zreceive);
+    FTPMenu->addMenu(XModemMenu);
+    FTPMenu->addMenu(YModemMenu);
+    FTPMenu->addMenu(ZModemMenu);
+
     act_exit=new QAction(tr("退出"));
 
-    menu_file->addAction(act_creat);
-    menu_file->addAction(act_open);
-    menu_file->addAction(act_save);
-    menu_file->addAction(act_close);
+    menu_file->addMenu(ProjectMenu);
+    menu_file->addMenu(SetMenu);
+    menu_file->addMenu(FTPMenu);
     menu_file->addAction(act_exit);
 
     ui->btn_file->setMenu(menu_file);
 
-    connect(act_creat,SIGNAL(triggered(bool)),this,SLOT(slt_xml_new()));
-    connect(act_open,SIGNAL(triggered(bool)),this,SLOT(slt_xml_open()));
-    connect(act_save,SIGNAL(triggered(bool)),this,SLOT(slt_xml_save()));
-    connect(act_close,SIGNAL(triggered(bool)),this,SLOT(slt_xml_close()));
+    connect(act_project_creat,SIGNAL(triggered(bool)),this,SLOT(slt_xml_new()));
+    connect(act_project_open,SIGNAL(triggered(bool)),this,SLOT(slt_xml_open()));
+    connect(act_project_save,SIGNAL(triggered(bool)),this,SLOT(slt_xml_save()));
+    connect(act_project_close,SIGNAL(triggered(bool)),this,SLOT(slt_xml_close()));
+
+    connect(act_ftp_ysend,SIGNAL(triggered(bool)),this,SLOT(slt_ftp_start()));
+
     connect(act_exit,SIGNAL(triggered(bool)),this,SLOT(slt_xml_exit()));
 
 
@@ -543,10 +574,6 @@ void Terminal::slt_com_open()
         }
         else        //串口打开失败
         {
-//            switch(my_port->error())
-//            {
-
-//            }
             QMetaEnum metaEnum = QMetaEnum::fromType<QSerialPort::SerialPortError>();       //将枚举转化为字符串，方便显示
             const char* s = metaEnum.valueToKey(my_port->error());              //获取错误信息
             qDebug()<<s;
@@ -699,4 +726,106 @@ QByteArray Terminal::HexStingEncode(QByteArray hexString)
 QByteArray Terminal::HexStingCode(QByteArray rawString)
 {
 
+}
+
+void Terminal::slt_ftp_start()      //文件传输开始
+{
+    if(btn_open->text()==tr("打开"))
+    {
+        QMessageBox *msgBox=new QMessageBox(this);                     //串口未打开，创建一个消息提醒框
+        msgBox->setWindowTitle(tr("Notice"));
+        msgBox->setText(tr("Please open a serialport!"));
+        //msgBox->setInformativeText(tr("Please open a serialport!"));
+        //msgBox->setDetailedText(tr("Differences here..."));
+        msgBox->setStandardButtons(QMessageBox::Ok);
+        msgBox->setDefaultButton(QMessageBox::Ok);
+        int ret = msgBox->exec();
+        if(ret == QMessageBox::Ok)
+            return;     //串口未打开，禁止发送
+        else
+            return;
+    }
+
+    //打开传输的文件
+    QString fileName = QFileDialog::getOpenFileName(this, tr("Open File"),QDir::currentPath(),tr("ALL Files (*.*)"));
+    if (fileName.isEmpty())
+        return;
+
+    QFile *ftpfile=new QFile(fileName);
+    if (!ftpfile->open(QFile::ReadOnly | QFile::Text)){
+
+    }
+    filedata=ftpfile->readAll();
+    ftpfile->close();
+
+    qDebug()<<"open file success";
+    disconnect(my_port,SIGNAL(readyRead()),this,SLOT(slt_com_recdata()));       //解除串口读信号槽
+    my_port->close();       //关闭串口，为串口交接做准备
+    qDebug()<<"close port success";
+
+    //创建线程
+    //让线程接管串口功能
+    ftphd=new FtpHandle();                                      //创建Object对象
+    thd=new QThread();                                          //创建进程
+    ftphd->moveToThread(thd);                                   //将Object对象移入进程
+    ftphd->SetAttr(fileName,filedata);                          //设置属性
+    ftphd->SetPort(my_port);                                    //传递串口参数
+    connect(thd,SIGNAL(started()),ftphd,SLOT(slt_start()));     //进程初始化，因为初始化需要在子进程中运行，所以不能用子进程的构造函数代替，而必须要用信号槽触发
+    connect(ftphd,SIGNAL(sgn_sendedProgress(int,int)),this,SLOT(slt_ftp_handle(int,int)));      //传输进度同步
+    connect(thd,SIGNAL(finished()),this,SLOT(slt_ftp_end()));
+    thd->start();    //开启进程
+
+    QString tempstr=QString("File Name:%1\r\nFile Size:%2byte\r\n").arg(QString(fileName.section('/',-1).toLocal8Bit())).arg(filedata.size());
+    receString.append(tempstr);
+    tet_Rec->setText(QString(receString));
+}
+
+void Terminal::slt_ftp_handle(int opt,int pec)        //文件传输进度处理
+{
+    switch(opt)
+    {
+    case 0:
+    {
+        qDebug()<<"File Transmit start";
+        receString.append("File Transmitting...");
+        break;
+    }
+    case 1:
+    {
+        qDebug("File Transmitting...%d%%",pec);
+        int index=receString.lastIndexOf("...")+3;
+        int len=receString.size()-index;
+        qDebug()<<index<<" "<<len;
+        QString tempstr=QString("%1%").arg(pec,0,10);
+        receString.remove(index,len);
+        receString.append(tempstr);
+        tet_Rec->setText(QString(receString));
+        break;
+    }
+    case 2:                 //文件传输结束
+    {
+        //销毁线程
+        thd->quit();
+        qDebug()<<"Fils Transmit end";
+
+        break;
+    }
+    }
+
+}
+
+void Terminal::slt_ftp_end()
+{
+    delete thd;
+    delete ftphd;
+
+    //恢复串口信号槽
+    if(!my_port->open(QIODevice::ReadWrite))
+    {
+        qDebug()<<"serialport open err";
+    }
+    connect(my_port,SIGNAL(readyRead()),this,SLOT(slt_com_recdata()));          //恢复串口读信号槽
+
+    receString.append("\r\nTransmit end\r\n");
+    tet_Rec->setText(QString(receString));
 }

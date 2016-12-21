@@ -17,12 +17,14 @@ SOURCES += main.cpp\
     sendbutton.cpp \
     treeview.cpp \
     mycombobox.cpp \
-    mylineedit.cpp
+    mylineedit.cpp \
+    ftphandle.cpp
 
 HEADERS  += terminal.h \
     sendbutton.h \
     treeview.h \
     mycombobox.h \
-    mylineedit.h
+    mylineedit.h \
+    ftphandle.h
 
 FORMS    += terminal.ui

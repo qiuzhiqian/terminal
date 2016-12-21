@@ -145,7 +145,7 @@ void FtpHandle::slt_rec_Handle()
 
                 RxData.clear();
                 Step=5;
-                tm_timeout->start(1000);
+                tm_timeout->start(3000);
             }
             else if(RxData.at(0)==NAK)
             {
@@ -173,6 +173,7 @@ void FtpHandle::slt_rec_Handle()
             break;
 
         tm_timeout->stop();
+        qDebug()<<"get C";
 
         RxData.clear();
         Step=6;

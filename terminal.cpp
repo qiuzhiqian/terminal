@@ -752,13 +752,14 @@ void Terminal::slt_ftp_start()      //文件传输开始
         return;
 
     QFile *ftpfile=new QFile(fileName);
-    if (!ftpfile->open(QFile::ReadOnly | QFile::Text)){
-
+    if (!ftpfile->open(QFile::ReadOnly)){     //不能带QFile::Text，因为文本格式是不会去读0x0D的，导致读取到的数据会将0x0D去除掉
+        qDebug()<<"Open file err";
     }
     filedata=ftpfile->readAll();
     ftpfile->close();
 
     qDebug()<<"open file success";
+    qDebug()<<"File size="<<filedata.size()<<"Byte";
     disconnect(my_port,SIGNAL(readyRead()),this,SLOT(slt_com_recdata()));       //解除串口读信号槽
     my_port->close();       //关闭串口，为串口交接做准备
     qDebug()<<"close port success";
@@ -775,7 +776,7 @@ void Terminal::slt_ftp_start()      //文件传输开始
     connect(thd,SIGNAL(finished()),this,SLOT(slt_ftp_end()));
     thd->start();    //开启进程
 
-    QString tempstr=QString("File Name:%1\r\nFile Size:%2byte\r\n").arg(QString(fileName.section('/',-1).toLocal8Bit())).arg(filedata.size());
+    QString tempstr=QString("\r\nFile Name:%1\r\nFile Size:%2byte\r\n").arg(QString(fileName.section('/',-1).toLocal8Bit())).arg(filedata.size());
     receString.append(tempstr);
     tet_Rec->setText(QString(receString));
 }

@@ -15,6 +15,7 @@ Terminal::Terminal(QWidget *parent) :
 
     int threeLength=75;
 
+    //菜单栏布局
     menu_file=new QMenu();
 
     ProjectMenu=new QMenu(tr("工程"));
@@ -67,7 +68,7 @@ Terminal::Terminal(QWidget *parent) :
 
     connect(act_exit,SIGNAL(triggered(bool)),this,SLOT(slt_xml_exit()));
 
-
+    //工具栏布局
     toolWidget=new QWidget();
     toolLayout=new QGridLayout();
     toolWidget->setLayout(toolLayout);
@@ -219,7 +220,7 @@ bool Terminal::xml_read(QIODevice *device)
         return false;
     } else if (root.hasAttribute("version")
                && root.attribute("version") != "1.0") {
-        qDebug("The file is not an XBEL version 1.0");
+        qDebug("The file is not an TMP version 1.0");
         return false;
     }
 
@@ -349,7 +350,7 @@ void Terminal::slt_xml_new()
 
 void Terminal::slt_xml_open()
 {
-    QString fileName = QFileDialog::getOpenFileName(this, tr("Open TMP File"),QDir::currentPath(),tr("XML Files (*.xml *.xbel)"));
+    QString fileName = QFileDialog::getOpenFileName(this, tr("Open TMP File"),QDir::currentPath(),tr("TMP File(*.tmp);;XML Files(*.xml *.xbel)"));
     if (fileName.isEmpty())
         return;
 
@@ -384,7 +385,7 @@ void Terminal::slt_xml_save()
 {
     if(xmlfile==NULL)
     {
-        QString filename = QFileDialog::getSaveFileName( this, tr("Save TMP File"), "", tr("XML Files (*.xml *.xbel)"));
+        QString filename = QFileDialog::getSaveFileName( this, tr("Save TMP File"), "", tr("TMP File(*.tmp);;XML Files(*.xml *.xbel)"));
         if (filename.isEmpty())
             return;
 
@@ -399,6 +400,7 @@ void Terminal::slt_xml_save()
     xml_write(xmlfile);
 
     xmlfile->close();
+    tv->setChangedFlag(false);      //重置修改标志
 }
 
 void Terminal::slt_xml_close()

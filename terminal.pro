@@ -18,13 +18,15 @@ SOURCES += main.cpp\
     treeview.cpp \
     mycombobox.cpp \
     mylineedit.cpp \
-    ftphandle.cpp
+    ftphandle.cpp \
+    isp_widget.cpp
 
 HEADERS  += terminal.h \
     sendbutton.h \
     treeview.h \
     mycombobox.h \
     mylineedit.h \
-    ftphandle.h
+    ftphandle.h \
+    isp_widget.h
 
 FORMS    += terminal.ui

@@ -27,6 +27,7 @@
 
 #include <QThread>
 #include "ftphandle.h"
+#include "isp_widget.h"
 
 #ifdef __cplusplus
 extern "C" {
@@ -78,6 +79,9 @@ private slots:
     void slt_ftp_handle(int opt,int pec);
     void slt_ftp_end();
 
+    void slt_ftp_stm32isp();
+    void slt_ftp_ispend();
+
 private:
     Ui::Terminal *ui;
 
@@ -98,6 +102,7 @@ private:
     QAction *act_ftp_yreceive;
     QAction *act_ftp_zsend;
     QAction *act_ftp_zreceive;
+    QAction *act_ftp_stm32isp;      //stm32isp下载
     QAction *act_exit;
 
     QWidget *toolWidget;
@@ -145,6 +150,8 @@ private:
     QByteArray filedata;
     FtpHandle *ftphd;
     QThread *thd;
+
+    ISP_Widget *ispwidget;
 protected:
     virtual void closeEvent(QCloseEvent *event);
 

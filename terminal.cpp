@@ -3,6 +3,8 @@
 #include <QDebug>
 #include <QMetaEnum>
 
+
+
 Terminal::Terminal(QWidget *parent) :
     QMainWindow(parent),
     ui(new Ui::Terminal)
@@ -49,6 +51,8 @@ Terminal::Terminal(QWidget *parent) :
     FTPMenu->addMenu(XModemMenu);
     FTPMenu->addMenu(YModemMenu);
     FTPMenu->addMenu(ZModemMenu);
+    act_ftp_stm32isp=new QAction("STM32ISP");
+    FTPMenu->addAction(act_ftp_stm32isp);
 
     act_exit=new QAction(tr("退出"));
 
@@ -65,6 +69,7 @@ Terminal::Terminal(QWidget *parent) :
     connect(act_project_close,SIGNAL(triggered(bool)),this,SLOT(slt_xml_close()));
 
     connect(act_ftp_ysend,SIGNAL(triggered(bool)),this,SLOT(slt_ftp_start()));
+    connect(act_ftp_stm32isp,SIGNAL(triggered(bool)),this,SLOT(slt_ftp_stm32isp()));
 
     connect(act_exit,SIGNAL(triggered(bool)),this,SLOT(slt_xml_exit()));
 
@@ -831,4 +836,20 @@ void Terminal::slt_ftp_end()
 
     receString.append("\r\nTransmit end\r\n");
     tet_Rec->setText(QString(receString));
+}
+
+void Terminal::slt_ftp_stm32isp()
+{
+    disconnect(my_port,SIGNAL(readyRead()),this,SLOT(slt_com_recdata()));
+    //创建模态窗口
+    ispwidget=new ISP_Widget(this);
+    ispwidget->setPort(my_port);
+    ispwidget->show();
+    connect(ispwidget,SIGNAL(sgn_ispend()),this,SLOT(slt_ftp_ispend()));
+}
+
+void Terminal::slt_ftp_ispend()
+{
+    qDebug()<<"ispend";
+    connect(my_port,SIGNAL(readyRead()),this,SLOT(slt_com_recdata()));
 }

@@ -1,28 +1,37 @@
 #ifndef FTPHANDLE_H
 #define FTPHANDLE_H
 
-#include <QObject>
 #include <QWidget>
 #include <QTimer>
+#include <QEventLoop>
 
 #include <QtSerialPort/QSerialPort>
 #include <QtSerialPort/QSerialPortInfo>
 
-class FtpHandle : public QObject
+#include <QLayout>
+#include <QProgressBar>
+#include <QLineEdit>
+#include <QPushButton>
+#include <QFileDialog>
+
+#include <QMessageBox>
+
+class FtpHandle : public QWidget
 {
     Q_OBJECT
 public:
-    explicit FtpHandle(QObject *parent = 0);
+    explicit FtpHandle(QWidget *parent = 0);
 
-    void SetAttr(QString filePath,QByteArray fileData);
+    //void SetAttr(QString filePath,QByteArray fileData);
 
     void SetPort(QSerialPort *P);       //初始化串口端口
 
     qint16 GetCrc(QByteArray Data);
 
+    int ackwait(int to);
+
 private:
     QSerialPort *Port;
-    QSerialPort *mPort;
 
     QString FilePath;
     QString *recString;
@@ -35,21 +44,36 @@ private:
     qint32 PackSize;        //1包字节数
     qint32 SendLen;         //发送一帧数据的实际长度
 
-    QTimer *tm_timeout;
+    //QTimer *tm_timeout;
 
     qint8 Step;
 
+    quint8 AckFlag;
+
+    //子窗口
+    QVBoxLayout *ftpLayout;
+    QHBoxLayout *fileLayout;
+    QProgressBar *pb_ftpProgress;
+
+    QLineEdit *led_filePath;
+    QPushButton *btn_fileOpen;
+    QPushButton *btn_fileSend;
+
 signals:
-    sgn_sendData();
-    sgn_sendedProgress(int opt,int pec);        //opt=0传输开始,opt=1正在传输,发送进度pec(0~100),opt=2传输结束
+    sgn_ftpEnd();
+    sgn_recvACK();
 
 private slots:
-    void slt_start();
     void slt_rec_Handle();      //接收处理
-    void slt_send_Handle(int sta);     //发送处理
-    void slt_rec_timeout();     //超时处理
+    void slt_send_Handle();     //发送处理
+
+    void slt_fileOpen();
+    //void slt_fileSend();
 
 public slots:
+
+protected:
+    virtual void closeEvent(QCloseEvent *event);
 };
 
 #endif // FTPHANDLE_H

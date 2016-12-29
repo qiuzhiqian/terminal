@@ -75,7 +75,6 @@ private slots:
     void slt_com_senddata(QTreeWidgetItem *itemtext);
 
     void slt_ftp_start();
-    void slt_ftp_handle(int opt,int pec);
     void slt_ftp_end();
 
 private:

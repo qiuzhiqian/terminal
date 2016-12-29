@@ -748,85 +748,16 @@ void Terminal::slt_ftp_start()      //文件传输开始
             return;
     }
 
-    //打开传输的文件
-    QString fileName = QFileDialog::getOpenFileName(this, tr("Open File"),QDir::currentPath(),tr("ALL Files (*.*)"));
-    if (fileName.isEmpty())
-        return;
-
-    QFile *ftpfile=new QFile(fileName);
-    if (!ftpfile->open(QFile::ReadOnly)){     //不能带QFile::Text，因为文本格式是不会去读0x0D的，导致读取到的数据会将0x0D去除掉
-        qDebug()<<"Open file err";
-    }
-    filedata=ftpfile->readAll();
-    ftpfile->close();
-
-    qDebug()<<"open file success";
-    qDebug()<<"File size="<<filedata.size()<<"Byte";
     disconnect(my_port,SIGNAL(readyRead()),this,SLOT(slt_com_recdata()));       //解除串口读信号槽
-    my_port->close();       //关闭串口，为串口交接做准备
-    qDebug()<<"close port success";
 
-    //创建线程
-    //让线程接管串口功能
-    ftphd=new FtpHandle();                                      //创建Object对象
-    thd=new QThread();                                          //创建进程
-    ftphd->moveToThread(thd);                                   //将Object对象移入进程
-    ftphd->SetAttr(fileName,filedata);                          //设置属性
-    ftphd->SetPort(my_port);                                    //传递串口参数
-    connect(thd,SIGNAL(started()),ftphd,SLOT(slt_start()));     //进程初始化，因为初始化需要在子进程中运行，所以不能用子进程的构造函数代替，而必须要用信号槽触发
-    connect(ftphd,SIGNAL(sgn_sendedProgress(int,int)),this,SLOT(slt_ftp_handle(int,int)));      //传输进度同步
-    connect(thd,SIGNAL(finished()),this,SLOT(slt_ftp_end()));
-    thd->start();    //开启进程
-
-    QString tempstr=QString("\r\nFile Name:%1\r\nFile Size:%2byte\r\n").arg(QString(fileName.section('/',-1).toLocal8Bit())).arg(filedata.size());
-    receString.append(tempstr);
-    tet_Rec->setText(QString(receString));
-}
-
-void Terminal::slt_ftp_handle(int opt,int pec)        //文件传输进度处理
-{
-    switch(opt)
-    {
-    case 0:
-    {
-        qDebug()<<"File Transmit start";
-        receString.append("File Transmitting...");
-        break;
-    }
-    case 1:
-    {
-        qDebug("File Transmitting...%d%%",pec);
-        int index=receString.lastIndexOf("...")+3;
-        int len=receString.size()-index;
-        qDebug()<<index<<" "<<len;
-        QString tempstr=QString("%1%").arg(pec,0,10);
-        receString.remove(index,len);
-        receString.append(tempstr);
-        tet_Rec->setText(QString(receString));
-        break;
-    }
-    case 2:                 //文件传输结束
-    {
-        //销毁线程
-        thd->quit();
-        qDebug()<<"Fils Transmit end";
-
-        break;
-    }
-    }
-
+    ftphd=new FtpHandle(this);
+    ftphd->SetPort(my_port);
+    ftphd->show();
+    connect(ftphd,SIGNAL(sgn_ftpEnd()),this,SLOT(slt_ftp_end()));
 }
 
 void Terminal::slt_ftp_end()
 {
-    delete thd;
-    delete ftphd;
-
-    //恢复串口信号槽
-    if(!my_port->open(QIODevice::ReadWrite))
-    {
-        qDebug()<<"serialport open err";
-    }
     connect(my_port,SIGNAL(readyRead()),this,SLOT(slt_com_recdata()));          //恢复串口读信号槽
 
     receString.append("\r\nTransmit end\r\n");

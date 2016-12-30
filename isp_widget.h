@@ -33,10 +33,10 @@ public:
     void ISP_GetID();
     void ISP_ReadMEM(quint32 address,quint8 len);
     void ISP_Go(quint32 address);
-    void ISP_WriteMEM();
+    void ISP_WriteMEM(quint32 address,QByteArray wdata);
     void ISP_EraseMEM();
     void ISP_ExEraseMEM();
-    void ISP_WriteP();
+    void ISP_WriteP(QByteArray pagecode);
     void ISP_WriteUP();
     void ISP_ReadP();
     void ISP_ReadUP();
@@ -48,7 +48,6 @@ private:
 
     QPushButton *btn_open;
     QPushButton *btn_down;
-    //QTextEdit *ted_display;
     QLabel *lab_display;
     QScrollArea *sa;
 
@@ -58,6 +57,8 @@ private:
     QByteArray fileData;
 
     QTimer *tm_timeout;     //超时控制
+
+    QString fileName;
 
     int state;
 

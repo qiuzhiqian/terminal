@@ -3,7 +3,12 @@
 #include <QDebug>
 #include <QMetaEnum>
 
+#include <QProcess>
 
+#define baseColor           "rgb(200,200,200)"
+#define exandColor          "rgb(250, 230, 160)"
+#define btnBaseColor        "rgb(36,240,67)"
+#define btnActiveColor      "rgb(200,0,0)"
 
 Terminal::Terminal(QWidget *parent) :
     QMainWindow(parent),
@@ -73,14 +78,17 @@ Terminal::Terminal(QWidget *parent) :
 
     connect(act_exit,SIGNAL(triggered(bool)),this,SLOT(slt_xml_exit()));
 
-    //工具栏布局
-    toolWidget=new QWidget();
-    toolLayout=new QGridLayout();
-    toolWidget->setLayout(toolLayout);
-    toolWidget->setStyleSheet("background-color:rgb(200,200,200);");   //rgb(55,100,255)
+    //btn_extStart=new QPushButton(tr("开始"));
+    //btn_exTool=new QPushButton(tr("工具"));
+
+    //startWidget布局
+    startWidget=new QWidget();
+    startLayout=new QGridLayout();
+    startWidget->setLayout(startLayout);
+    startWidget->setStyleSheet("background-color:"exandColor);   //rgb(55,100,255)
 
     btn_open=new QPushButton(tr("打开"));
-    btn_open->setStyleSheet("background-color:rgb(36,240,67);");
+    btn_open->setStyleSheet("background-color:"btnBaseColor);
 
 
     lb_com=new QLabel(tr("串口号"));
@@ -97,7 +105,6 @@ Terminal::Terminal(QWidget *parent) :
     cbx_stopbit=new QComboBox();
     cbx_flowctrl=new QComboBox();
 
-
     cbx_bdrate->addItems(QStringList() <<"2400"<<"4800"<<"9600"<<"19200"<<"38400"<<"57600"<<"115200"<<"128000"<<"256000");
     cbx_bdrate->setCurrentText("115200");
     cbx_databit->addItems(QStringList()<<tr("5位")<<tr("6位")<<tr("7位")<<tr("8位"));
@@ -108,7 +115,7 @@ Terminal::Terminal(QWidget *parent) :
 
     btn_hexwatch=new QPushButton("HEX");
     hexEnable=false;
-    btn_hexwatch->setStyleSheet("background-color:rgb(36,240,67);");
+    btn_hexwatch->setStyleSheet("background-color:"btnBaseColor);
     btn_recvclear=new QPushButton(tr("清除"));
     btn_wintop=new QPushButton(tr("置顶"));
 
@@ -120,42 +127,64 @@ Terminal::Terminal(QWidget *parent) :
     menu_treeadd->addAction(act_addnode);
     btn_treeitemadd->setMenu(menu_treeadd);
 
-    toolLayout->addWidget(btn_open,0,0,3,1);
+    startLayout->addWidget(btn_open,0,0,3,1);
     btn_open->setMinimumHeight(threeLength);     //设置打开按键的大小
 
-    toolLayout->addWidget(lb_com,0,1);
-    toolLayout->addWidget(lb_bdrate,1,1);
-    toolLayout->addWidget(lb_databit,2,1);
+    startLayout->addWidget(lb_com,0,1);
+    startLayout->addWidget(lb_bdrate,1,1);
+    startLayout->addWidget(lb_databit,2,1);
 
-    toolLayout->addWidget(cbx_com,0,2);
-    toolLayout->addWidget(cbx_bdrate,1,2);
-    toolLayout->addWidget(cbx_databit,2,2);
+    startLayout->addWidget(cbx_com,0,2);
+    startLayout->addWidget(cbx_bdrate,1,2);
+    startLayout->addWidget(cbx_databit,2,2);
 
-    toolLayout->addWidget(lb_parity,0,3);
-    toolLayout->addWidget(lb_stopbit,1,3);
-    toolLayout->addWidget(lb_flowctrl,2,3);
+    startLayout->addWidget(lb_parity,0,3);
+    startLayout->addWidget(lb_stopbit,1,3);
+    startLayout->addWidget(lb_flowctrl,2,3);
 
-    toolLayout->addWidget(cbx_parity,0,4);
-    toolLayout->addWidget(cbx_stopbit,1,4);
-    toolLayout->addWidget(cbx_flowctrl,2,4);
+    startLayout->addWidget(cbx_parity,0,4);
+    startLayout->addWidget(cbx_stopbit,1,4);
+    startLayout->addWidget(cbx_flowctrl,2,4);
 
-    toolLayout->addWidget(btn_hexwatch,0,5,3,1);
+    startLayout->addWidget(btn_hexwatch,0,5,3,1);
     btn_hexwatch->setMinimumHeight(threeLength);     //设置打开按键的大小
 
-    toolLayout->addWidget(btn_recvclear,0,6);
-    toolLayout->addWidget(btn_wintop,1,6);
+    startLayout->addWidget(btn_recvclear,0,6);
+    startLayout->addWidget(btn_wintop,1,6);
 
-    toolLayout->addWidget(btn_treeitemadd,0,7,3,1);
+    startLayout->addWidget(btn_treeitemadd,0,7,3,1);
     btn_treeitemadd->setMinimumHeight(threeLength);     //设置打开按键的大小
 
     QHBoxLayout * hb = new QHBoxLayout();
     hb->addStretch();
-    toolLayout->addLayout(hb,0,8);
+    startLayout->addLayout(hb,0,8);
 
+    //toolWidget布局设置
+    toolWidget=new QWidget();
+    toolLayout=new QGridLayout();
+    toolWidget->setLayout(toolLayout);
+    toolWidget->setStyleSheet("background-color:"exandColor);   //rgb(55,100,255)
+    btn_tool_calc=new QPushButton(tr("计算器"));
+    btn_tool_ascii=new QPushButton(tr("ASCII表"));
+    toolLayout->addWidget(btn_tool_calc,0,0);
+    toolLayout->addWidget(btn_tool_ascii,0,1);
+    hb = new QHBoxLayout();
+    hb->addStretch();
+    toolLayout->addLayout(hb,0,2);
+
+    ui->hl_tool->addWidget(startWidget);
     ui->hl_tool->addWidget(toolWidget);
+
+    extandSelect=0;
+    startWidget->setVisible(false);
     toolWidget->setVisible(false);
 
-    connect(ui->btn_tool,SIGNAL(clicked(bool)),this,SLOT(slt_toolExtand()));
+    connect(btn_tool_calc,SIGNAL(clicked(bool)),this,SLOT(slt_tool_calcRun()));
+    connect(btn_tool_ascii,SIGNAL(clicked(bool)),SLOT(slt_tool_asciiRun()));
+
+    connect(ui->btn_extStart,SIGNAL(clicked(bool)),this,SLOT(slt_startExtend()));
+    connect(ui->btn_exTool,SIGNAL(clicked(bool)),this,SLOT(slt_toolExtend()));
+    connect(ui->btn_extend,SIGNAL(clicked(bool)),this,SLOT(slt_extandOpen()));
 
     spt_sendTree = new QSplitter(Qt::Horizontal, 0); //新建主分割窗口，水平分割
     tet_Rec=new QTextEdit();
@@ -197,6 +226,7 @@ Terminal::Terminal(QWidget *parent) :
     connect(btn_open,SIGNAL(clicked(bool)),this,SLOT(slt_com_open()));
     connect(btn_recvclear,SIGNAL(clicked(bool)),this,SLOT(slt_com_recClr()));
     connect(btn_hexwatch,SIGNAL(clicked(bool)),this,SLOT(slt_com_hexWatch()));
+    connect(btn_wintop,SIGNAL(clicked(bool)),this,SLOT(slt_winTopSet()));
 }
 
 Terminal::~Terminal()
@@ -470,19 +500,65 @@ void Terminal::slt_xml_del()
 
 }
 
-void Terminal::slt_toolExtand()
+void Terminal::extendShow(int sta)
 {
-    if(ui->btn_tool->text()==">")
+    if(sta==0)
     {
-        ui->btn_tool->setText("<");
-
-        toolWidget->setVisible(true);
+        startWidget->setVisible(false);
+        ui->btn_extStart->setStyleSheet("background-color:"baseColor);
+        toolWidget->setVisible(false);
+        ui->btn_exTool->setStyleSheet("background-color:"baseColor);
+    }
+    else if(sta==1)
+    {
+        startWidget->setVisible(true);
+        ui->btn_extStart->setStyleSheet("background-color:"exandColor);
+        toolWidget->setVisible(false);
+        ui->btn_exTool->setStyleSheet("background-color:"baseColor);
     }
     else
     {
-        ui->btn_tool->setText(">");
+        startWidget->setVisible(false);
+        ui->btn_extStart->setStyleSheet("background-color:"baseColor);
+        toolWidget->setVisible(true);
+        ui->btn_exTool->setStyleSheet("background-color:"exandColor);
+    }
+}
 
-        toolWidget->setVisible(false);
+void Terminal::slt_startExtend()
+{
+    extandSelect=0;
+    ui->btn_extend->setText("︿");
+    extendShow(1);
+}
+
+void Terminal::slt_toolExtend()
+{
+    extandSelect=1;
+    ui->btn_extend->setText("︿");
+    extendShow(2);
+}
+
+void Terminal::slt_extandOpen()
+{
+    if(ui->btn_extend->text()=="﹀")
+    {
+        ui->btn_extend->setText("︿");
+
+        if(extandSelect==0)
+        {
+            extendShow(1);
+        }
+        else
+        {
+            extendShow(2);
+        }
+    }
+    else
+    {
+        ui->btn_extend->setText("﹀");
+
+        extendShow(0);
 
     }
 }
@@ -574,7 +650,7 @@ void Terminal::slt_com_open()
             cbx_stopbit->setEnabled(false);
             cbx_flowctrl->setEnabled(false);
 
-            btn_open->setStyleSheet("background-color:red");
+            btn_open->setStyleSheet("background-color:"btnActiveColor);
             btn_open->setText(tr("关闭"));
             connect(my_port,SIGNAL(readyRead()),this,SLOT(slt_com_recdata()));
             //connect(ui->btn_send,SIGNAL(clicked(bool)),this,SLOT(slt_senddata()));
@@ -608,7 +684,7 @@ void Terminal::slt_com_open()
         cbx_stopbit->setEnabled(true);
         cbx_flowctrl->setEnabled(true);
 
-        btn_open->setStyleSheet("background-color:rgb(36,240,67)");
+        btn_open->setStyleSheet("background-color:"btnBaseColor);
         btn_open->setText(tr("打开"));
     }
 }
@@ -624,12 +700,12 @@ void Terminal::slt_com_hexWatch()
     if(hexEnable==false)
     {
         hexEnable=true;
-        btn_hexwatch->setStyleSheet("background-color:red");
+        btn_hexwatch->setStyleSheet("background-color:"btnActiveColor);
     }
     else
     {
         hexEnable=false;
-        btn_hexwatch->setStyleSheet("background-color:rgb(36,240,67)");
+        btn_hexwatch->setStyleSheet("background-color:"btnBaseColor);
     }
 }
 
@@ -731,6 +807,41 @@ QByteArray Terminal::HexStingEncode(QByteArray hexString)
 }
 
 QByteArray Terminal::HexStingCode(QByteArray rawString)
+{
+
+}
+
+void Terminal::slt_winTopSet()           //窗口置顶
+{
+    static bool topSta=false;
+
+    if(topSta==false)
+    {
+        this->hide();
+        this->setWindowFlags(this->windowFlags()|Qt::WindowStaysOnTopHint);
+        this->show();
+        topSta=true;
+        qDebug()<<"set top";
+        btn_wintop->setStyleSheet("background-color:"btnActiveColor);
+    }
+    else
+    {
+        this->hide();
+        this->setWindowFlags(this->windowFlags()&(~Qt::WindowStaysOnTopHint));
+        this->show();
+        topSta=false;
+        qDebug()<<"reset top";
+        btn_wintop->setStyleSheet("background-color:"exandColor);
+    }
+}
+
+void Terminal::slt_tool_calcRun()
+{
+    QProcess *proc=new QProcess();
+    proc->start("calc");                //启动计算器
+}
+
+void Terminal::slt_tool_asciiRun()
 {
 
 }

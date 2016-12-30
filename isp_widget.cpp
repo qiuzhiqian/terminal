@@ -90,7 +90,7 @@ void ISP_Widget::closeEvent(QCloseEvent *event) //关闭事件，完成串口的
 void ISP_Widget::slt_fileopen()
 {
     //打开传输的文件
-    QString fileName = QFileDialog::getOpenFileName(this, tr("Open File"),QDir::currentPath(),tr("HEX File(*.hex);;BIN File(*.bin);;ALL File (*.*)"));
+    fileName = QFileDialog::getOpenFileName(this, tr("Open File"),QDir::currentPath(),tr("HEX File(*.hex);;BIN File(*.bin);;ALL File (*.*)"));
     if (fileName.isEmpty())
         return;
 
@@ -163,7 +163,7 @@ void ISP_Widget::ISP_GetID()
     QByteArray tempdata;
     bool sta=0;
     quint8 cmd=CMD_Get_ID;
-    tempdata.append(cmd);      //发送CMD_Get_V_PS，然后等待响应ACK(0x79)或者NACK(0x1F)
+    tempdata.append(cmd);
     tempdata.append(~cmd);
     serialp->write(tempdata);
     sta=ackwait(1000);
@@ -181,8 +181,8 @@ void ISP_Widget::ISP_ReadMEM(quint32 address, quint8 len)
     quint8 checkval;
     bool sta=0;
     quint8 cmd=CMD_Read_MEM;
-    tempdata.append(cmd);      //发送CMD_Get_V_PS，然后等待响应ACK(0x79)或者NACK(0x1F)
-    tempdata.append(~cmd);
+    tempdata.append(cmd);                           //b1
+    tempdata.append(~cmd);                          //b2
     serialp->write(tempdata);
     sta=ackwait(1000);
     if(sta==false){
@@ -191,36 +191,113 @@ void ISP_Widget::ISP_ReadMEM(quint32 address, quint8 len)
     tempdata.clear();
     tempdata.append((quint8)(address>>24));         //b3
     tempdata.append((quint8)(address>>16));         //b4
-    tempdata.append((quint8)(address>>8));          //b3
-    tempdata.append((quint8)address);               //b4
+    tempdata.append((quint8)(address>>8));          //b5
+    tempdata.append((quint8)address);               //b6
 
     checkval=xorcheck(tempdata);
-    tempdata.append(checkval);                  //b3
+    tempdata.append(checkval);                      //b7
     serialp->write(tempdata);
     sta=ackwait(1000);
     if(sta==false){
         //timeout
     }
     tempdata.clear();
-    tempdata.append(len);         //b3
+    tempdata.append(len);                           //b8
     checkval=xorcheck(tempdata);
-    tempdata.append(checkval);                  //b3
+    tempdata.append(checkval);                      //b9
     serialp->write(tempdata);
+    sta=ackwait(1000);
+    if(sta==false){
+        //timeout
+    }
 }
 
 void ISP_Widget::ISP_Go(quint32 address)
 {
+    QByteArray tempdata;
+    quint8 checkval;
+    bool sta=0;
+    quint8 cmd=CMD_Go;
+    tempdata.append(cmd);                           //b1
+    tempdata.append(~cmd);                          //b2
+    serialp->write(tempdata);
+    sta=ackwait(1000);
+    if(sta==false){
+        //timeout
+    }
+    tempdata.clear();
+    tempdata.append((quint8)(address>>24));         //b3
+    tempdata.append((quint8)(address>>16));         //b4
+    tempdata.append((quint8)(address>>8));          //b5
+    tempdata.append((quint8)address);               //b6
 
+    checkval=xorcheck(tempdata);
+    tempdata.append(checkval);                      //b7
+    serialp->write(tempdata);
+    sta=ackwait(1000);
+    if(sta==false){
+        //timeout
+    }
 }
 
-void ISP_Widget::ISP_WriteMEM()
+void ISP_Widget::ISP_WriteMEM(quint32 address,QByteArray wdata)
 {
+    QByteArray tempdata;
+    int len=wdata.length();
+    quint8 checkval;
+    bool sta=0;
+    quint8 cmd=CMD_Write_MEM;
+    tempdata.append(cmd);                           //b1
+    tempdata.append(~cmd);                          //b2
+    serialp->write(tempdata);
+    sta=ackwait(1000);
+    if(sta==false){
+        //timeout
+    }
+    tempdata.clear();
+    tempdata.append((quint8)(address>>24));         //b3
+    tempdata.append((quint8)(address>>16));         //b4
+    tempdata.append((quint8)(address>>8));          //b5
+    tempdata.append((quint8)address);               //b6
 
+    checkval=xorcheck(tempdata);
+    tempdata.append(checkval);                      //b7
+    serialp->write(tempdata);
+    sta=ackwait(1000);
+    if(sta==false){
+        //timeout
+    }
+    tempdata.clear();
+    tempdata.append(len);                           //b8
+    tempdata+=wdata;                                //N+1
+    checkval=xorcheck(tempdata);
+    tempdata.append(checkval);                      //b7
+    serialp->write(tempdata);
 }
 
-void ISP_Widget::ISP_EraseMEM()
+void ISP_Widget::ISP_EraseMEM()                     //只支持全片擦除
 {
-
+    QByteArray tempdata;
+    //int len=wdata.length();
+    //quint8 checkval;
+    bool sta=0;
+    quint8 cmd=CMD_Erase;
+    tempdata.append(cmd);                           //b1
+    tempdata.append(~cmd);                          //b2
+    serialp->write(tempdata);
+    sta=ackwait(1000);
+    if(sta==false){
+        //timeout
+    }
+    tempdata.clear();
+    tempdata.append(0xFF);                          //b3
+    int tempval=0x00;
+    tempdata.append(tempval);                          //b4
+    serialp->write(tempdata);
+    sta=ackwait(1000);
+    if(sta==false){
+        //timeout
+    }
 }
 
 void ISP_Widget::ISP_ExEraseMEM()
@@ -228,24 +305,68 @@ void ISP_Widget::ISP_ExEraseMEM()
 
 }
 
-void ISP_Widget::ISP_WriteP()
+void ISP_Widget::ISP_WriteP(QByteArray pagecode)       //使能写保护
 {
-
+    QByteArray tempdata;
+    int len=pagecode.length();
+    quint8 checkval;
+    bool sta=0;
+    quint8 cmd=CMD_Write_P;
+    tempdata.append(cmd);                           //b1
+    tempdata.append(~cmd);                          //b2
+    serialp->write(tempdata);
+    sta=ackwait(1000);
+    if(sta==false){
+        //timeout
+    }
+    tempdata.clear();
+    tempdata.append(len);
+    tempdata+=pagecode;
+    checkval=xorcheck(tempdata);
+    tempdata.append(checkval);                      //b7
+    serialp->write(tempdata);
 }
 
-void ISP_Widget::ISP_WriteUP()
+void ISP_Widget::ISP_WriteUP()                          //失能写保护
 {
-
+    QByteArray tempdata;
+    bool sta=0;
+    quint8 cmd=CMD_Write_UP;
+    tempdata.append(cmd);                           //b1
+    tempdata.append(~cmd);                          //b2
+    serialp->write(tempdata);
+    sta=ackwait(1000);                              //等待两个ACK
+    if(sta==false){
+        //timeout
+    }
 }
 
-void ISP_Widget::ISP_ReadP()
+void ISP_Widget::ISP_ReadP()        //使能读保护
 {
-
+    QByteArray tempdata;
+    bool sta=0;
+    quint8 cmd=CMD_Read_P;
+    tempdata.append(cmd);                           //b1
+    tempdata.append(~cmd);                          //b2
+    serialp->write(tempdata);
+    sta=ackwait(1000);                              //等待两个ACK
+    if(sta==false){
+        //timeout
+    }
 }
 
-void ISP_Widget::ISP_ReadUP()
+void ISP_Widget::ISP_ReadUP()       //失能读保护
 {
-
+    QByteArray tempdata;
+    bool sta=0;
+    quint8 cmd=CMD_Read_UP;
+    tempdata.append(cmd);                           //b1
+    tempdata.append(~cmd);                          //b2
+    serialp->write(tempdata);
+    sta=ackwait(1000);                              //等待两个ACK
+    if(sta==false){
+        //timeout
+    }
 }
 
 void ISP_Widget::sendHandle()
@@ -261,26 +382,32 @@ bool ISP_Widget::ackwait(int to)
     QTimer timeout_t;
     timeout_t.setSingleShot(true);
     connect(&timeout_t,SIGNAL(timeout()),&loop,SLOT(quit()));       //超时打断
-    connect(this,SIGNAL(sgn_recvACK()),&loop,SLOT(quit()));         //接收到ack打断
+    connect(this,SIGNAL(sgn_recvACK()),&loop,SLOT(quit()));         //数据响应打断
     timeout_t.start(to);
     loop.exec();
-    if(!timeout_t.isActive())
+//    qDebug()<<"wait end";
+//    qDebug()<<timeout_t.remainingTime();
+
+    if(timeout_t.isActive())
     {
-        //超时
+        qDebug()<<"ack ok";
+        return true;
+    }
+    else
+    {
         qDebug()<<"timeout";
         return false;
     }
-    qDebug()<<"ack ok";
-    return true;
 }
 
 quint8 ISP_Widget::xorcheck(QByteArray ba)
 {
     quint8 res=0;
     quint8 len=ba.length();
+    if(len<=0) return 0;
     for(int i=0;i<len;i++)
     {
-        res=res^ba.at(i);
+        res^=ba.at(i);
     }
     return res;
 }

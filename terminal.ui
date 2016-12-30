@@ -17,12 +17,29 @@
    <layout class="QVBoxLayout" name="verticalLayout" stretch="0,1">
     <item>
      <layout class="QVBoxLayout" name="hl_tool">
+      <property name="spacing">
+       <number>1</number>
+      </property>
       <item>
        <layout class="QHBoxLayout" name="hl_tool_up">
         <item>
          <widget class="QPushButton" name="btn_file">
           <property name="text">
            <string>File</string>
+          </property>
+         </widget>
+        </item>
+        <item>
+         <widget class="QPushButton" name="btn_extStart">
+          <property name="text">
+           <string>开始</string>
+          </property>
+         </widget>
+        </item>
+        <item>
+         <widget class="QPushButton" name="btn_exTool">
+          <property name="text">
+           <string>工具</string>
           </property>
          </widget>
         </item>
@@ -47,9 +64,9 @@
          </widget>
         </item>
         <item>
-         <widget class="QPushButton" name="btn_tool">
+         <widget class="QPushButton" name="btn_extend">
           <property name="text">
-           <string>&gt;</string>
+           <string>﹀</string>
           </property>
          </widget>
         </item>

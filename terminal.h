@@ -49,6 +49,8 @@ public:
     explicit Terminal(QWidget *parent = 0);
     ~Terminal();
 
+    void extendShow(int sta);
+
     bool xml_read(QIODevice *device);
     void xml_write(QIODevice *device);
 
@@ -67,13 +69,20 @@ private slots:
     void slt_xml_addNode();
     void slt_xml_del();
 
-    void slt_toolExtand();
+    void slt_startExtend();
+    void slt_toolExtend();
+    void slt_extandOpen();
+
+    void slt_tool_calcRun();
+    void slt_tool_asciiRun();
 
     void slt_com_open();
     void slt_com_recClr();
     void slt_com_hexWatch();
     void slt_com_recdata();
     void slt_com_senddata(QTreeWidgetItem *itemtext);
+
+    void slt_winTopSet();
 
     void slt_ftp_start();
     void slt_ftp_end();
@@ -104,8 +113,12 @@ private:
     QAction *act_ftp_stm32isp;      //stm32isp下载
     QAction *act_exit;
 
-    QWidget *toolWidget;
-    QGridLayout *toolLayout;
+    //QPushButton *btn_extStart;  //展开start
+    //QPushButton *btn_exTool;    //展开tool
+
+    int extandSelect;
+    QWidget *startWidget;
+    QGridLayout *startLayout;
 
     QPushButton *btn_open;
 
@@ -131,6 +144,11 @@ private:
     QMenu *menu_treeadd;
     QAction *act_addgroup;
     QAction *act_addnode;
+
+    QWidget *toolWidget;
+    QGridLayout *toolLayout;
+    QPushButton *btn_tool_calc;      //计算器
+    QPushButton *btn_tool_ascii;        //ascii表
 
     QSplitter *spt_sendTree;
     QTextEdit *tet_Rec;

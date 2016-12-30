@@ -372,7 +372,6 @@ qint16 FtpHandle::GetCrc(QByteArray Data)
 
 int FtpHandle::ackwait(int to)
 {
-    //quint8 res=0;
     QEventLoop loop;
     QTimer timeout_t;
     timeout_t.setSingleShot(true);
